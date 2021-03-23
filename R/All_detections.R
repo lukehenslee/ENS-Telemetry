@@ -3,7 +3,7 @@
 # Date: February 24, 2021
 # Creator: Luke Henslee, ADF&G and CFOS, UAF
 #
-#Purpose: To import marine array acoustic receiver data, output acoustic 
+#Purpose: To import ENS acoustic receiver data, output acoustic 
 # detection histories for all tags
 #
 #==================================================================================================
