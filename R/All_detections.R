@@ -1,20 +1,22 @@
 #==================================================================================================
 # Importing and filtering marine array receiver data
-# Date: February 24, 2021
+# Date: March 22, 2021
 # Creator: Luke Henslee, ADF&G and CFOS, UAF
 #
-#Purpose: To import ENS acoustic receiver data, output acoustic 
-# detection histories for all tags
+#Purpose: To import ENS acoustic receiver data and output detection histories 
+# for all tags
 #
 #==================================================================================================
 #NOTES: Array 5 contained receivers 15 and 35, which are also Tag ID numbers. 
-# Since each receiver sends a beacon signal to ensure proper function, it obscures
-# detection of tags 15 and 35. Therefore, we filter these Tag IDs out of array 5.
-# A similar situation arises in array 7, which contains receiver 55. We filter Tag ID
-# 55 out of array 7 detection history. Lotek is aware of the issue and working on
-# fixing it for 2021.
+# Since each receiver sends a beacon signal to ensure proper function, it 
+# obscures detection of tags 15 and 35. Therefore, we filter these Tag IDs out 
+# of array 5.
 #
-# No tags detected in Kwiniuk or Tubutulik rivers and receiver data is ommited 
+# A similar situation arises in array 7, which contains receiver 55. We filter 
+# Tag ID 55 out of array 7 detection history. Lotek is aware of the issue and 
+# working on fixing it for 2021.
+#
+# No tags detected in Kwiniuk or Tubutulik rivers and receiver data is ommited. 
 #==================================================================================================
 
 # Load packages ####
