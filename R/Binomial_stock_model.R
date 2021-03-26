@@ -1,22 +1,12 @@
 #==================================================================================================
-# Importing and filtering marine array receiver data
-# Date: March 22, 2021
+# Binomial stock model
+# Date: March 25, 2021
 # Creator: Luke Henslee, ADF&G and CFOS, UAF
 #
-#Purpose: To import ENS acoustic receiver data and output detection histories 
-# for all tags
+#
 #
 #==================================================================================================
-#NOTES: Array 5 contained receivers 15 and 35, which are also Tag ID numbers. 
-# Since each receiver sends a beacon signal to ensure proper function, it 
-# obscures detection of tags 15 and 35. Therefore, we filter these Tag IDs out 
-# of array 5.
-#
-# A similar situation arises in array 7, which contains receiver 55. We filter 
-# Tag ID 55 out of array 7 detection history. Lotek is aware of the issue and 
-# working on fixing it for 2021.
-#
-# No tags detected in Kwiniuk or Tubutulik rivers and receiver data is ommited. 
+#NOTES: 
 #==================================================================================================
 
 # Load packages ####
@@ -26,73 +16,65 @@ library(data.table)
 library(lubridate)
 library(openxlsx)
 library(magrittr)
+library(visreg)
+library(MASS)
 
 # Set working directory ####
-setwd("Q:/RESEARCH/Tagging/R/data/detections")
+setwd("Q:/RESEARCH/Tagging/Github/data")
 
-# Import receiver data and combine ####
-  # Make list of file names in detection folder
-temp <- list.files(pattern = "*.csv")
+# Import tagging data
+mcode <- read.csv("M_code_list.csv")
 
-  # Read file content
-det <- lapply(temp, read_csv, 
-        col_types = cols(Date = col_date(format = "%m/%d/%Y"), 
-        Power = col_double(), TOA = col_skip(), 
-        `Tag ID` = col_character(), Time = col_time(format = "%H:%M:%S"), 
-        Type = col_skip(), Value = col_skip()), skip = 45)
+# Filter for final fates which allow for stock assignment (i.e. FF 1 and 2)
+ff12 <- mcode %>% filter(mcode$Final.fate..num. %in% c(1:2))
 
-  # Read file names
-filenames <- temp %>% basename() %>% as.list()
+# Convert response factor to binomial (0/1)
+bi <- vector(length = nrow(ff12))
 
-  # Combine file content list with file name list and remove ".csv"
-det_named <- mapply(c, det, substr(filenames, 1, 3), SIMPLIFY = F)
-
-  # Combine lists and lable receiver ID column
-det_all <- rbindlist(det_named, fill = T)
-names(det_all)[5] <- "receiver.ID"
-
-# Filter detections ####
-  # Omitting tags 15, 35, and 55 (see note). 
-det_all_tags <- filter(det_all, between(Date, as.Date("2020-7-29"), as.Date("2020-9-15")), 
-       `Tag ID` %in% seq(75, 7995, by = 20)) %>% 
-       group_by(`Tag ID`) 
-
-# Modify date/time column ####
-det_all_tags$ymd_hms <- paste(det_all_tags$Date, det_all_tags$Time, sep = " ") 
-
-det_all_tags$ymd_hms_numeric <- as.numeric(ymd_hms(det_all_tags$ymd_hms, tz = 'US/Alaska'))
-
-det_all_tags <- subset(det_all_tags, select = -c(Date, Time))
-
-# Write .csv files ####
-
-# Make .csv with all tag detections on one sheet
-TAGS <- createWorkbook()
-
-addWorksheet(TAGS, sheetName = "All_detections")
-
-writeData(TAGS, "All_detections", det_all_tags)
-
-saveWorkbook(TAGS, "Q:/RESEARCH/Tagging/R/output/List_all_tag_detections.xlsx")
-
-# Make .csv with a new sheet for each Tag ID
-  # Make list of Tag ID dataframes
-
-det_all_tags <- det_all_tags[order(det_all_tags$`Tag ID`),]
-
-det_all_tags_split <- setNames(split(det_all_tags, det_all_tags$`Tag ID`),
-         paste(unique(det_all_tags$`Tag ID`)))
-
-  # Create a blank workbook
-TAG <- createWorkbook()
-
-for(i in seq(75, 7995, by = 20)) {
-  wsName <- paste(i)  
-  if(!(wsName %in% det_all_tags$`Tag ID`)) next
-  addWorksheet(TAG, sheetName = wsName)
-  writeData(TAG, sheet = wsName, x = get(wsName, envir = as.environment(det_all_tags_split)))
+for(i in 1:length(bi)) {
+  if(ff12[i,9] == ff12[i,16]) {
+    bi[i] <- 1
+  } else {
+    bi[i] <- 0
+  }
 }
 
-saveWorkbook(TAG, "Q:/RESEARCH/Tagging/R/output/All_tag_detections.xlsx")
+ff12$binomial <- bi
 
-  
+# Convert date and time of capture to POSIXct object
+ff12$ymd_hms <- paste(ff12$Date, ff12$Time.in, sep = " ")
+
+ff12$ymd_hms <- parse_date_time(ff12$ymd_hms, orders = 'mdy HM', tz = 'US/Alaska') 
+
+ff12$ymd_hms_numeric <- as.numeric(ymd_hms(ff12$ymd_hms))
+
+# Build binomial model 
+bi_model_full <- glm(binomial ~ ymd_hms*Lat, data = ff12,
+                     family = binomial(link = "logit"))
+
+bi_model_no_int <- glm(binomial ~ ymd_hms + Lat, data = ff12,
+                     family = binomial(link = "logit"))
+summary(bi_model_no_int)
+
+# Try splitting into separate SD5 and SD6 models
+  #SD 5
+ff125 <- ff12 %>% filter(ff12$Fishing.loc == 5)
+
+bi_model_5_full <- glm(binomial ~ ymd_hms_numeric + Lat, data = ff125,
+                       family = binomial(link = "logit"))
+
+summary(bi_model_5_full)
+
+visreg(bi_model_5_full, scale = "response")
+
+  # SD6
+ff126 <- ff12 %>% filter(ff12$Fishing.loc == 6)
+
+bi_model_6_full <- glm(binomial ~ ymd_hms_numeric + Lat, data = ff126,
+                       family = binomial(link = "logit"))
+
+summary(bi_model_6_full)
+
+visreg(bi_model_6_full, scale = "response")
+
+# Try 6a, 6b, 6c... 
