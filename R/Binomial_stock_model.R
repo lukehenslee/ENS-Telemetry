@@ -78,3 +78,53 @@ summary(bi_model_6_full)
 visreg(bi_model_6_full, scale = "response")
 
 # Try 6a, 6b, 6c... 
+
+# Plot effect of Lat on terminal fish
+mod <- glm(binomial ~ Lat, data = ff125, family = binomial(link = "logit"))
+
+glmplot <- ggplot(ff125, aes(Lat, binomial)) +
+  geom_rug() +
+  geom_smooth(size = 0.5, color = "black", method = "glm", se = T, 
+              method.args = list(family = "binomial")) +
+  scale_x_continuous(name = "Latitude", expand = c(0,0), 
+                     breaks = seq(64.15, 64.35, .05)) +
+  scale_y_continuous(name = "Likelihood", 
+                     expand = c(0, 0), 
+                     limits = c(0, 1), 
+                     breaks = seq(0, 1, .2)) +
+  theme_classic() +
+  theme (axis.title.y = element_text(size = 14, margin = margin(t = 0, r = 10, b = 0, l = 0), colour = "black"),
+         axis.title.x = element_text(size = 14, margin = margin(t = 10, r = 0, b = 0, l = 0), colour = "black"),
+         text = element_text(family = "Times New Roman"),
+         legend.position = c(0.75,0.75),
+         legend.text = element_text(size = 12),
+         legend.title = element_text(size = 12),
+         legend.key.size = unit(.5, "cm"),
+         plot.margin = unit(c(0.2, 0.1, 0.1, 0.1), "cm"),
+         axis.ticks.y = element_line(size = 0.5),
+         axis.ticks.x = element_line(size = 0.5),
+         axis.ticks.length = unit(0.2,"cm"),
+         axis.text.y = element_text(colour = "black", size = 14, angle = 0, vjust = 0.5, hjust = 1,
+                                    margin = margin(t = 0, r = 5, b = 0, l = 0)),
+         axis.text.x = element_text(colour = "black", size = 14, angle = 90, vjust = 0, hjust = 0.5,
+                                    margin = margin(t = 5, r = 0, b = 0, l = 0)),
+         axis.line = element_line(colour = "black", size = 0.5, lineend = "square"),
+         panel.border = element_rect(color = "black", fill = "transparent", size = 0.5))
+
+dev.new(width = 2.75, height = 1.83, units = "in", noRStudioGD = TRUE) %>% 
+ggsave(glmplot, file = "GLM_1.tiff", width = 2.75, height = 1.83, units = "in",dpi = 300)
+
+loadfonts(device = "win")
+library(tidyverse)
+library(ggplot2)
+library(extrafont)
+library(ggpubr)
+library(forcats)
+library(ggforce)
+library(ggridges)
+library(lubridate)
+library(RColorBrewer)
+library(viridis)
+library(readr)
+# Load fonts
+loadfonts(device = "win")
