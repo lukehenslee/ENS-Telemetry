@@ -55,10 +55,14 @@ lengthbincount <- mcode %>%
   group_by(Length_bin) %>% 
   count()
 
-plot(lengthbincount)
+plot(x=as.factor(lengthbincount$Length_bin), y = lengthbincount$n)
 points(x=lengthbincount$Length_bin, y=lengthbincount$n, pch=21, bg="red")
 
-# Assign number to each bin
+ggplot(lengthbincount) +
+  geom_bar(aes(x=lengthbincount$Length_bin, y = ..prop.., group = 1), stat = "count") 
+
+
+x# Assign number to each bin
 mcode$Length_bin_number <- as.numeric(factor(mcode$Length_bin))
 
 # Create selectivity function
@@ -73,7 +77,7 @@ selex_dome <- function(length, lmax, delta) {
 }
 
 # Let's make sure this function works
-selex_dome(length=mcode$Length_bin_number, lmax=16, delta=5)
+pred.length <- selex_dome(length=mcode$Length_bin_number, lmax=16, delta=5)
 
 
 # Now lets create a function to plot predictions for dome-shaped selectivity
@@ -92,4 +96,55 @@ plot_selex_dome <- function(length, lmax, delta) {
 }
 
 # Lets check that it works
-plot_selex_dome(length=mcode$Length_bin_number, lmax=16, delta=5)
+
+plot_selex_dome(length=mcode$Length_bin_number, lmax=16, delta=5) 
+points(obs.length)
+obs.length <- mcode$Length_bin_number
+
+ssq <- function(data, ln_lmax, ln_delta) {
+  # Exponentiate parameters
+  lmax <- exp(ln_lmax)
+  delta <- exp(ln_delta)
+  pred <- selex_dome(length = data, lmax = lmax, delta = delta)
+  sq <- (log(data) - log(pred))^2 # Squared difference for each observation
+  ssq <- sum(sq)
+  return(ssq)
+}
+
+selex <- mle2(ssq,
+              start = list(ln_lmax = log(16), ln_delta = log(10)),
+              data = list(data = mcode$Length_bin_number),
+              optimizer = "nlminb",
+              method = "Nelder-Mead")
+summary(selex)
+
+exp(coef(selex))
+
+ssq <- function(data, ln_lmax, ln_delta, ln_sigma) {
+  # Exponentiate parameters
+  lmax <- exp(ln_lmax)
+  delta <- exp(ln_delta)
+  sigma <- ln_sigma
+  pred <- selex_dome(length = data, lmax = lmax, delta = delta)
+  # Calculate log-likelihood (lognormal distribution)
+  logLike <- dnorm(x=log(data), mean=log(pred), sd=sigma, log=TRUE)
+  
+  # Calculate total negative log likelihood
+  NLL <- -1*sum(logLike, na.rm=TRUE) # We need to add na.rm as there are some NA's for weights in the dataset
+  return(NLL)
+}
+
+ssq(mcode$Length_bin_number, log(16), log(5), log(5))
+
+selex <- mle2(ssq,
+              start = list(ln_lmax = log(16), ln_delta = log(5), ln_sigma = log(5)),
+              data = list(data = mcode$Length_bin_number),
+              optimizer = "nlminb",
+              method = "Nelder-Mead",
+              control=list(maxit=1e6))
+
+summary(selex)
+
+exp(coef(selex))
+
+selex_dome(mcode$Length_bin_number, exp(coef(selex)[1]), 21)
