@@ -164,7 +164,7 @@ stocks5 <- filter(stocks, stocks$Tag.group == 2)
 bi <- vector(length = nrow(stocks5))
 
 for(i in 1:length(bi)) {
-  if(stocks5[i,9] == stocks5[i,16]) {
+  if(stocks5[i,31] == stocks5[i,32]) {
     bi[i] <- 1
   } else {
     bi[i] <- 0
